@@ -1,0 +1,35 @@
+# Testing dependencies for Robotic Car Simulation
+pytest>=7.0.0
+pytest-qt>=4.0.0
+pytest-cov>=4.0.0
+pytest-json-report>=1.5.0
+pytest-benchmark>=4.0.0
+pytest-mock>=3.10.0
+pytest-timeout>=2.1.0
+pytest-xdist>=3.0.0  # For parallel test execution
+
+# Performance monitoring
+psutil>=5.9.0
+memory-profiler>=0.60.0
+
+# Mock and testing utilities
+mock>=4.0.0
+factory-boy>=3.2.0
+faker>=18.0.0
+
+# Coverage reporting
+coverage>=7.0.0
+coverage-badge>=1.1.0
+
+# Test data and fixtures
+hypothesis>=6.70.0
+parameterized>=0.9.0
+
+# Benchmarking and profiling
+py-spy>=0.3.14
+line-profiler>=4.0.0
+
+# Additional testing utilities
+testfixtures>=7.1.0
+freezegun>=1.2.0  # For time-based testing
+responses>=0.23.0  # For HTTP mocking if needed

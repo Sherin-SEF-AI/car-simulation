@@ -1,0 +1,210 @@
+name: Comprehensive Test Suite
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: [3.9, 3.10, 3.11]
+        
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: Install system dependencies (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libopengl0 \
+          libgl1-mesa-glx \
+          libglib2.0-0 \
+          libxkbcommon-x11-0 \
+          libxcb-icccm4 \
+          libxcb-image0 \
+          libxcb-keysyms1 \
+          libxcb-randr0 \
+          libxcb-render-util0 \
+          libxcb-xinerama0 \
+          libxcb-xfixes0 \
+          xvfb
+          
+    - name: Install system dependencies (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install qt6
+        
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r tests/requirements.txt
+        
+    - name: Lint with flake8
+      run: |
+        pip install flake8
+        # Stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Exit-zero treats all errors as warnings
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        
+    - name: Type check with mypy
+      run: |
+        pip install mypy
+        mypy src --ignore-missing-imports --no-strict-optional
+        
+    - name: Run unit tests
+      env:
+        QT_QPA_PLATFORM: offscreen
+        DISPLAY: ':99.0'
+      run: |
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          xvfb-run -a python run_tests.py --test-types unit --output unit_test_results.txt
+        else
+          python run_tests.py --test-types unit --output unit_test_results.txt
+        fi
+      shell: bash
+      
+    - name: Run integration tests
+      env:
+        QT_QPA_PLATFORM: offscreen
+        DISPLAY: ':99.0'
+      run: |
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          xvfb-run -a python run_tests.py --test-types integration --output integration_test_results.txt
+        else
+          python run_tests.py --test-types integration --output integration_test_results.txt
+        fi
+      shell: bash
+      
+    - name: Run performance tests
+      env:
+        QT_QPA_PLATFORM: offscreen
+        DISPLAY: ':99.0'
+      run: |
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          xvfb-run -a python run_tests.py --test-types performance --output performance_test_results.txt
+        else
+          python run_tests.py --test-types performance --output performance_test_results.txt
+        fi
+      shell: bash
+      
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-${{ matrix.os }}-${{ matrix.python-version }}
+        path: |
+          *_test_results.txt
+          test-results.xml
+          coverage.xml
+          htmlcov/
+          
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.10'
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        
+  performance-baseline:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libopengl0 libgl1-mesa-glx xvfb
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r tests/requirements.txt
+        
+    - name: Update performance baselines
+      env:
+        QT_QPA_PLATFORM: offscreen
+        DISPLAY: ':99.0'
+      run: |
+        xvfb-run -a python run_tests.py --test-types performance --update-baselines
+        
+    - name: Commit updated baselines
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add tests/performance_baselines.json
+        git diff --staged --quiet || git commit -m "Update performance baselines [skip ci]"
+        git push
+        
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Run security scan with bandit
+      run: |
+        pip install bandit[toml]
+        bandit -r src/ -f json -o bandit-report.json
+        
+    - name: Upload security scan results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-scan-results
+        path: bandit-report.json
+        
+  documentation:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        
+    - name: Install documentation dependencies
+      run: |
+        pip install sphinx sphinx-rtd-theme sphinx-autodoc-typehints
+        
+    - name: Build documentation
+      run: |
+        sphinx-build -b html docs/ docs/_build/html
+        
+    - name: Upload documentation
+      uses: actions/upload-artifact@v3
+      with:
+        name: documentation
+        path: docs/_build/html

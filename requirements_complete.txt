@@ -1,0 +1,77 @@
+# Complete Robotic Car Simulation Requirements
+# Advanced autonomous vehicle simulation with comprehensive features
+
+# Core GUI Framework
+PyQt6>=6.4.0
+PyQt6-Qt6>=6.4.0
+
+# 3D Graphics and Visualization
+PyOpenGL>=3.1.6
+PyOpenGL-accelerate>=3.1.5
+numpy>=1.21.0
+
+# Scientific Computing and Mathematics
+scipy>=1.9.0
+matplotlib>=3.5.0
+
+# Machine Learning and AI (Optional but recommended)
+torch>=1.12.0; platform_system != "Darwin" or platform_machine != "arm64"
+torchvision>=0.13.0; platform_system != "Darwin" or platform_machine != "arm64"
+scikit-learn>=1.1.0
+
+# Computer Vision (Optional)
+opencv-python>=4.6.0
+
+# Data Processing and Analysis
+pandas>=1.4.0
+h5py>=3.7.0
+
+# Configuration and Serialization
+pyyaml>=6.0
+toml>=0.10.2
+
+# Performance and Profiling
+psutil>=5.9.0
+memory-profiler>=0.60.0
+
+# Testing Framework
+pytest>=7.1.0
+pytest-qt>=4.1.0
+pytest-cov>=3.0.0
+
+# Development Tools
+black>=22.0.0
+flake8>=5.0.0
+mypy>=0.971
+
+# Documentation
+sphinx>=5.0.0
+sphinx-rtd-theme>=1.0.0
+
+# Packaging and Distribution
+setuptools>=65.0.0
+wheel>=0.37.0
+build>=0.8.0
+
+# Cross-platform compatibility
+pywin32>=304; platform_system == "Windows"
+
+# Optional: Advanced Physics
+pymunk>=6.2.1
+
+# Optional: Networking for multi-user scenarios
+websockets>=10.3
+
+# Optional: Database for data persistence
+sqlite3; python_version >= "3.0"
+
+# Optional: Audio for simulation sounds
+pygame>=2.1.0
+
+# Optional: Advanced plotting
+plotly>=5.10.0
+dash>=2.6.0
+
+# Development and Build Tools
+pip-tools>=6.8.0
+tox>=3.25.0
